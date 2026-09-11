@@ -357,6 +357,56 @@ it durable, the verification must demonstrate configured acknowledgement,
 persistence across restart, retention/replay behavior, duplicate handling,
 backpressure, and a failure-safe dead-letter path.
 
+## Phase 9: Embedded Analytics Compatibility Fixture
+
+### Intention
+
+Measure whether DuckDB and chDB can reproduce a small analytical result without
+coupling application logic to either engine. This is a compatibility gate, not
+an engine benchmark or a production storage decision.
+
+### Behavior
+
+The fixture computes deterministic per-signal count, minimum, maximum, and
+average values. The reference adapter always runs. DuckDB and chDB adapters run
+only when their optional packages are installed. Missing packages produce exit
+status `2`, while a result mismatch produces exit status `1`.
+
+### Implementation
+
+- `analytics_contract/ports.py` defines the small application-facing query port.
+- `analytics_contract/fixture.py` defines canonical observations and expected
+  summaries.
+- `analytics_contract/reference.py` provides a dependency-free expectation.
+- `analytics_contract/duckdb_adapter.py` and `analytics_contract/chdb_adapter.py`
+  contain optional infrastructure adapters.
+- `analytics_contract/verify.py` compares all available adapters.
+- `scripts/verify-analytics-compatibility.sh` and its operations document make
+  the capability result repeatable.
+- No engine dependency is forced into the base runtime.
+
+### Situations Evaluated
+
+- Stable reference aggregation.
+- DuckDB SQL result parity when installed.
+- chDB SQL result parity when installed.
+- Optional dependency unavailable.
+- Adapter result mismatch.
+- Engine-specific setup isolated from the shared query port.
+
+### Deliberately Deferred
+
+- Performance and cost claims.
+- Parquet/object-store scans.
+- ClickHouse server parity.
+- Concurrent writes, restart durability, and cloud behavior.
+
+### Next Gate
+
+Install and verify each optional engine in a controlled benchmark environment,
+then add the local Redpanda/Compose adapter separately. Do not interpret exit
+status `2` as evidence that an engine is compatible.
+
 The existing working tree contains unrelated untracked material and an
 unstaged TODO edit in `telemetry_contract/generator.py`; those items are not
 part of the completed phases and must remain outside future commits until their
