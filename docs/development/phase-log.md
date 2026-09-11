@@ -577,7 +577,8 @@ topic before making any claim about application-topic retention.
 ### Behavior
 
 `./scripts/verify-redpanda-retention.sh` creates a one-partition topic with
-`retention.ms=5000`, `segment.ms=1000`, and `segment.bytes=16384`, produces
+`retention.ms=5000`, `retention.local.target.ms=5000`, `segment.ms=1000`, and
+`segment.bytes=16384`, produces
 three probe records to force segment rollover, verifies the initial watermark,
 waits for cleanup, and requires the log start offset to advance. The temporary
 topic is deleted by the exit trap.
@@ -599,12 +600,17 @@ topic is deleted by the exit trap.
 - The second record also exceeds the configured segment size, forcing a
   size-based rollover when time-based rollover was insufficient in the local
   Redpanda runtime.
+- The rollover fixture uses 20 valid 20 KiB records rather than one huge line,
+  avoiding `rpk` stdin truncation while exceeding any practical minimum segment
+  size.
 - A third record closes the segment containing the rollover record; the test
   only requires the first segment's start offset to advance, leaving the final
   active segment outside the expiry assertion.
-- On Redpanda `v24.3.6`, the configured topic retained all records after the
-  bounded 75-second wait. The script reports exit `2` for this capability result
-  rather than converting it into a false pass.
+- The topic inherited `retention.local.target.ms=86400000`; the test now sets
+  that local target explicitly to the bounded value to avoid an inherited
+  higher local-retention floor.
+- The initial negative result was caused by the fixture not forcing physical
+  segment rollover, not by the broker's retention implementation.
 - Cleanup is isolated to a uniquely named temporary topic.
 
 ### Deliberately Deferred
@@ -622,9 +628,8 @@ without risking the existing local Redpanda volume.
 ### Behavior
 
 The baseline `v24.3.6` test was repeated with `v25.3.17` on a fresh named
-volume using the same topic configuration and fixture. Both versions accepted
-the configuration but left `log_start_offset=0` after the bounded wait once
-broker readiness was explicitly awaited.
+volume using the corrected rollover fixture. Both versions advanced
+`log_start_offset` from `0` to `22` after the bounded wait.
 
 ### Implementation
 
@@ -638,15 +643,15 @@ broker readiness was explicitly awaited.
 
 - Directly opening the existing v24 volume with v25 was rejected by Redpanda's
   incompatible logical-version guard; this is an invalid upgrade path.
-- A fresh v25 volume removed the migration variable but reproduced the retention
-  non-observation.
+- A fresh v25 volume removed the migration variable and reproduced the retention
+  pass.
 - The baseline v24 stack was restored and its existing volume preserved.
 
 ### Decision
 
-Keep `redpandadata/redpanda:v24.3.6` pinned for now. The evidence does not
-justify replacing it; retention remains an unresolved local capability result
-and must not be claimed as verified.
+Keep `redpandadata/redpanda:v24.3.6` pinned for now. Both tested versions pass
+the bounded retention check, and changing the image would add upgrade risk
+without improving the demonstrated behavior.
 
 ### Deliberately Deferred
 

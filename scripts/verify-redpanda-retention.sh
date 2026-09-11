@@ -31,15 +31,25 @@ done
     --brokers "$BROKERS" --partitions 1 --replicas 1 \
     --topic-config "cleanup.policy=delete" \
     --topic-config "retention.ms=$RETENTION_MS" \
+    --topic-config "retention.local.target.ms=$RETENTION_MS" \
     --topic-config "segment.ms=$SEGMENT_MS" \
     --topic-config "segment.bytes=16384"
+
+./scripts/local-stack.sh exec redpanda rpk topic alter-config "$TOPIC" --brokers "$BROKERS" \
+    --set "retention.ms=$RETENTION_MS" \
+    --set "retention.local.target.ms=$RETENTION_MS" \
+    --set "segment.ms=$SEGMENT_MS" \
+    --set "segment.bytes=16384"
 
 printf 'retention-probe-%s\n' "$TOPIC" | \
     ./scripts/local-stack.sh exec redpanda rpk topic produce "$TOPIC" --brokers "$BROKERS"
 
 sleep 2
-printf 'retention-probe-close-%s\n' "$TOPIC" | \
+uv run python - <<'PY' | \
     ./scripts/local-stack.sh exec redpanda rpk topic produce "$TOPIC" --brokers "$BROKERS"
+for index in range(20):
+    print(f"retention-probe-{index}-" + "x" * 20000)
+PY
 
 sleep 2
 printf 'retention-probe-rollover-%s\n' "$TOPIC" | \
@@ -58,9 +68,14 @@ partition = document[0]["partitions"][0]
 if partition["high_watermark"] < 1 or partition["log_start_offset"] != 0:
     raise SystemExit(f"retention probe record was not present: {partition}")
 configs = {item["key"]: item["value"] for item in document[0]["configs"]}
-if configs.get("retention.ms") != "5000" or configs.get("segment.ms") != "1000" or configs.get("segment.bytes") != "16384":
+if (
+    configs.get("retention.ms") != "5000"
+    or configs.get("retention.local.target.ms") != "5000"
+    or configs.get("segment.ms") != "1000"
+    or configs.get("segment.bytes") != "16384"
+):
     raise SystemExit(f"retention configuration was not applied: {configs}")
-print(f"retention_config topic={sys.argv[2]} retention_ms=5000 segment_ms=1000 segment_bytes=16384")
+print(f"retention_config topic={sys.argv[2]} retention_ms=5000 retention_local_target_ms=5000 segment_ms=1000 segment_bytes=16384")
 print(f"retention_before log_start_offset={partition['log_start_offset']} high_watermark={partition['high_watermark']}")
 PY
 

@@ -114,9 +114,10 @@ To verify time-based retention without touching the telemetry topic:
 ```
 
 The script creates a temporary topic with five-second retention, one-second
-segments, and a 16 KiB segment size. It produces a second record large enough
-to force rollover and a third record to close the next segment, verifies the
-topic configuration, waits up to 75 seconds for the background cleanup cycle,
+local retention target, one-second segments, and a 16 KiB segment size. It
+produces 20 valid 20 KiB records to force physical rollover and close multiple
+segments, verifies the topic configuration, waits up to 75 seconds for the
+background cleanup cycle,
 and checks the log offsets before deleting the temporary topic. This is a local
 configuration check, not a production retention or legal immutability claim.
 It waits for Redpanda cluster health before creating the topic.
