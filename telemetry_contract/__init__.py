@@ -9,6 +9,7 @@ from .validator import (
 from .generator import GeneratedChunk, VibrationGeneratorConfig, generate_vibration_chunk
 from .stream import generate_vibration_chunks
 from .ingestion import DurablePublisher, IngestionEndpoint, IngestionReceipt
+from .kafka_publisher import KafkaDurablePublisher, KafkaPublisherConfig
 
 __all__ = [
     "ContractError",
@@ -21,5 +22,7 @@ __all__ = [
     "DurablePublisher",
     "IngestionEndpoint",
     "IngestionReceipt",
+    "KafkaDurablePublisher",
+    "KafkaPublisherConfig",
     "validate_envelope",
 ]
