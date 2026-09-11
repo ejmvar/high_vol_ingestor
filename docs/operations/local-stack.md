@@ -119,6 +119,7 @@ to force rollover and a third record to close the next segment, verifies the
 topic configuration, waits up to 75 seconds for the background cleanup cycle,
 and checks the log offsets before deleting the temporary topic. This is a local
 configuration check, not a production retention or legal immutability claim.
+It waits for Redpanda cluster health before creating the topic.
 Exit `2` means the broker accepted the retention configuration but did not
 provide deletion evidence in the bounded wait; treat that as an environment
 capability result requiring investigation, not as a passing retention test.

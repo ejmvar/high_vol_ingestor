@@ -623,7 +623,8 @@ without risking the existing local Redpanda volume.
 
 The baseline `v24.3.6` test was repeated with `v25.3.17` on a fresh named
 volume using the same topic configuration and fixture. Both versions accepted
-the configuration but left `log_start_offset=0` after the bounded wait.
+the configuration but left `log_start_offset=0` after the bounded wait once
+broker readiness was explicitly awaited.
 
 ### Implementation
 

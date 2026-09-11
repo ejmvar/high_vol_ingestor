@@ -16,6 +16,17 @@ SEGMENT_MS=1000
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEMP_DIR"; ./scripts/local-stack.sh exec redpanda rpk topic delete "$TOPIC" --brokers "$BROKERS" >/dev/null 2>&1 || true' EXIT
 
+for attempt in {1..30}; do
+    if ./scripts/local-stack.sh exec redpanda rpk cluster health --api-urls redpanda:9644 >/dev/null 2>&1; then
+        break
+    fi
+    if [[ "$attempt" == 30 ]]; then
+        printf 'ERROR Redpanda did not become ready within 60 seconds\n' >&2
+        exit 1
+    fi
+    sleep 2
+done
+
 ./scripts/local-stack.sh exec redpanda rpk topic create "$TOPIC" \
     --brokers "$BROKERS" --partitions 1 --replicas 1 \
     --topic-config "cleanup.policy=delete" \
