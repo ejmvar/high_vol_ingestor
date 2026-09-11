@@ -7,6 +7,7 @@ from .validator import (
     validate_envelope,
 )
 from .generator import GeneratedChunk, VibrationGeneratorConfig, generate_vibration_chunk
+from .stream import generate_vibration_chunks
 
 __all__ = [
     "ContractError",
@@ -15,5 +16,6 @@ __all__ = [
     "GeneratedChunk",
     "VibrationGeneratorConfig",
     "generate_vibration_chunk",
+    "generate_vibration_chunks",
     "validate_envelope",
 ]
