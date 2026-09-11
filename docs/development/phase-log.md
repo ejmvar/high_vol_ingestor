@@ -533,6 +533,42 @@ The first successful run produced:
 - Restart persistence, retention, replay completeness, throughput, backpressure,
   dead-letter handling, and multi-record ordering.
 
+## Phase 15: Redpanda Restart And Replay Check
+
+### Intention
+
+Verify that a broker-acknowledged record remains readable from its original
+partition and offset after recreating the Redpanda container with its named
+volume preserved.
+
+### Behavior
+
+`./scripts/verify-redpanda-replay.sh` publishes one unique fixture, extracts
+the returned topic/partition/offset, restarts Redpanda, and consumes from that
+exact offset. The test passes only when the topic and idempotency key match.
+
+### Implementation
+
+- `scripts/verify-redpanda-replay.sh` owns the publish, restart, and exact-offset
+  replay sequence.
+- `scripts/local-stack.sh exec` keeps the `rpk` output isolated from wrapper
+  diagnostics.
+- The `stack-replay` mise task and operations documentation provide the
+  repeatable entry point.
+
+### Situations Evaluated
+
+- Broker acknowledgement supplies a concrete replay coordinate.
+- Container recreation does not remove the named Redpanda data volume.
+- Replay validates identity without printing payload contents.
+- `rpk` partition and offset are passed as separate flags; its `partition:offset`
+  range syntax can otherwise start at the partition's beginning.
+
+### Deliberately Deferred
+
+- Retention expiry, complete-log replay, consumer group recovery, throughput,
+  backpressure, and dead-letter behavior.
+
 ## Phase 10: Local Compose Service Stack
 
 ### Intention

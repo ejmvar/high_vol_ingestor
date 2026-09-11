@@ -114,3 +114,12 @@ REDPANDA_EXTERNAL_PORT=29092 ./scripts/smoke-local-ingestor.sh
 It submits one deterministic fixture, repeats the exact request, and consumes
 one matching record from Redpanda. Larger-volume, restart, retention, and replay
 tests remain separate acceptance gates.
+
+The restart/replay gate is:
+
+```bash
+REDPANDA_EXTERNAL_PORT=29092 ./scripts/verify-redpanda-replay.sh
+```
+
+It records the acknowledged partition and offset, recreates Redpanda without
+removing its volume, and reads that exact record back from the log.

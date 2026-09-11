@@ -94,6 +94,17 @@ HTTP acceptance, duplicate suppression, producer acknowledgement, and broker
 delivery for that single record. It does not prove restart persistence,
 retention, replay completeness, throughput, or production durability.
 
+To verify one record survives a Redpanda restart and remains readable from its
+original offset:
+
+```bash
+REDPANDA_EXTERNAL_PORT=29092 ./scripts/verify-redpanda-replay.sh
+```
+
+This recreates only the Redpanda container and preserves its named volume. It
+is a bounded restart/replay check, not proof of retention policy or complete
+log recovery.
+
 ## Verification Evidence
 
 The lifecycle script prints the selected runtime, action, and Compose output.
