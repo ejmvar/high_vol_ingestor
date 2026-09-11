@@ -1,0 +1,31 @@
+{
+  "schema_name": "nvt.telemetry.chunk",
+  "schema_version": "1.0",
+  "event_id": "evt-000001",
+  "motor_id": "MOTOR-c2ad",
+  "signal_type": "vibration",
+  "event_start": "2026-09-10T19:00:00Z",
+  "event_end": "2026-09-10T19:00:01Z",
+  "sample_rate_hz": 25600,
+  "channel_count": 1,
+  "sample_count": 25600,
+  "producer_id": "generator-vibration-01",
+  "producer_sequence": 0,
+  "payload_byte_length": 51200,
+  "checksum": {
+    "algorithm": "sha256",
+    "value": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "codec": "none",
+  "format": "pcm_s16le",
+  "idempotency_key": "MOTOR-c2ad/vibration/2026-09-10T19:00:00Z/0",
+  "source": {
+    "kind": "deterministic-generator",
+    "version": "0.1.0"
+  },
+  "quality": {
+    "clock_synchronized": true,
+    "clipped": false,
+    "missing_samples": 0
+  }
+}

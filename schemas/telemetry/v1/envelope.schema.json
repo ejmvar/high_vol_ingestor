@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nvt.example/schemas/telemetry/v1/envelope.schema.json",
+  "title": "NVT telemetry chunk envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_name",
+    "schema_version",
+    "event_id",
+    "motor_id",
+    "signal_type",
+    "event_start",
+    "event_end",
+    "sample_rate_hz",
+    "channel_count",
+    "sample_count",
+    "producer_id",
+    "producer_sequence",
+    "payload_byte_length",
+    "checksum",
+    "codec",
+    "format",
+    "idempotency_key"
+  ],
+  "properties": {
+    "schema_name": { "const": "nvt.telemetry.chunk" },
+    "schema_version": { "const": "1.0" },
+    "event_id": { "type": "string", "minLength": 1 },
+    "motor_id": { "type": "string", "minLength": 1 },
+    "signal_type": {
+      "enum": ["voltage", "current", "active_power", "vibration", "audio", "ultrasonic"]
+    },
+    "event_start": { "type": "string", "format": "date-time" },
+    "event_end": { "type": "string", "format": "date-time" },
+    "sample_rate_hz": { "type": "number", "exclusiveMinimum": 0 },
+    "channel_count": { "type": "integer", "minimum": 1 },
+    "sample_count": { "type": "integer", "minimum": 1 },
+    "producer_id": { "type": "string", "minLength": 1 },
+    "producer_sequence": { "type": "integer", "minimum": 0 },
+    "payload_byte_length": { "type": "integer", "minimum": 1 },
+    "checksum": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "value"],
+      "properties": {
+        "algorithm": { "const": "sha256" },
+        "value": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "codec": { "enum": ["none", "gzip", "zstd", "flac"] },
+    "format": { "enum": ["pcm_s16le", "float32", "scalar_f64"] },
+    "idempotency_key": { "type": "string", "minLength": 1 },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "version"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clock_synchronized": { "type": "boolean" },
+        "clipped": { "type": "boolean" },
+        "missing_samples": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
