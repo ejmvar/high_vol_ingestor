@@ -109,6 +109,13 @@ class StatefulTelemetryValidator:
         self._last_sequence: dict[tuple[str, str], int] = {}
 
     def accept(self, raw: Mapping[str, Any], payload: bytes | None = None) -> ValidationResult:
+        result = self.inspect(raw, payload)
+        if result.status == "accepted":
+            self.commit(result.envelope)
+        return result
+
+    def inspect(self, raw: Mapping[str, Any], payload: bytes | None = None) -> ValidationResult:
+        """Validate and classify a record without changing validator state."""
         envelope = validate_envelope(raw, payload)
         identity = str(envelope["idempotency_key"])
         fingerprint = (str(envelope["checksum"]["value"]), int(envelope["payload_byte_length"]))
@@ -123,6 +130,13 @@ class StatefulTelemetryValidator:
         previous = self._last_sequence.get(order_key)
         if previous is not None and sequence <= previous:
             raise ContractError("out_of_order", "producer sequence must increase")
+        return ValidationResult("accepted", envelope)
+
+    def commit(self, envelope: Mapping[str, Any]) -> None:
+        """Record a previously inspected accepted envelope."""
+        identity = str(envelope["idempotency_key"])
+        fingerprint = (str(envelope["checksum"]["value"]), int(envelope["payload_byte_length"]))
+        order_key = (str(envelope["producer_id"]), str(envelope["motor_id"]))
+        sequence = int(envelope["producer_sequence"])
         self._accepted[identity] = fingerprint
         self._last_sequence[order_key] = sequence
-        return ValidationResult("accepted", envelope)
