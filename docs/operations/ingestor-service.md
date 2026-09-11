@@ -14,6 +14,12 @@ Start the local stack through the canonical lifecycle script:
 ./scripts/local-stack.sh up
 ```
 
+Install and verify the host-side Kafka adapter dependencies with:
+
+```bash
+mise run kafka-sync
+```
+
 Check process readiness:
 
 ```bash
@@ -65,6 +71,22 @@ network policy, and secret injection are separate adapter concerns.
   Zstandard is required by the publisher's configured compression.
 - Container startup does not prove durable acknowledgement until a broker
   smoke test verifies it.
+
+## Issue And Decision Log
+
+### Missing Zstandard Codec
+
+The Kafka adapter selects `compression_type="zstd"`. `kafka-python` treats the
+Zstandard implementation as an optional dependency, so an image containing
+only `kafka-python` fails during producer construction with
+`Libraries for zstd compression codec not found`.
+
+Decision: keep Zstandard for high-volume batches and pin both Kafka runtime
+packages in the `kafka` optional extra in `pyproject.toml`. `uv.lock`, `mise run
+kafka-sync`, and the local Dockerfile provide reproducible host and container
+installation paths.
+Switching compression off would avoid the dependency but would increase
+network and broker storage costs; it is not the selected default.
 
 ## Failure Interpretation
 

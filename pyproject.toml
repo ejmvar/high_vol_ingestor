@@ -13,8 +13,8 @@ dev = [
 
 [project.optional-dependencies]
 kafka = [
-    "kafka-python>=2.0.2,<3",
-    "zstandard>=0.23,<1",
+    "kafka-python==2.3.2",
+    "zstandard==0.25.0",
 ]
 
 [tool.pytest.ini_options]

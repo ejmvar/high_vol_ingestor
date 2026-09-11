@@ -17,6 +17,10 @@ run = "./scripts/check-prerequisites.sh"
 description = "Run the canonical host test suite"
 run = "./scripts/host-test.sh"
 
+[tasks.kafka-sync]
+description = "Install and verify Kafka compression dependencies"
+run = "./scripts/sync-kafka-dependencies.sh"
+
 [tasks.contract]
 description = "Verify the telemetry contract fixtures"
 run = "./scripts/verify-telemetry-contract.sh"

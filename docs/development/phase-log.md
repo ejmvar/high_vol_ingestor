@@ -446,6 +446,44 @@ access logs.
 - High-volume payload transport optimization beyond the initial base64 HTTP
   contract.
 
+## Phase 13: Kafka Codec Reproducibility
+
+### Intention
+
+Make the Kafka publisher's selected Zstandard compression capability explicit
+and reproducible in both the host development environment and the local
+container image.
+
+### Behavior
+
+`mise run kafka-sync` resolves the `kafka` optional dependency extra through
+`uv`, verifies that `kafka-python` and `zstandard` are importable, and prints
+their versions without exposing secrets. The local image installs the same
+codec as a pinned runtime dependency.
+
+### Implementation
+
+- `pyproject.toml` declares `zstandard` in the `kafka` optional extra.
+- `uv.lock` records the resolved optional dependency.
+- `scripts/sync-kafka-dependencies.sh` is the documented installation and
+  verification entry point.
+- `mise.toml` exposes the script as `kafka-sync`.
+- `deploy/local/Dockerfile.ingestor` pins the container installation.
+- `docs/operations/ingestor-service.md` records the failure and decision.
+
+### Situations Evaluated
+
+- A producer configured for Zstandard without its codec fails during startup.
+- Host and container dependency paths are independently reproducible.
+- Disabling compression would remove the dependency but worsen high-volume
+  transport and storage efficiency.
+
+### Deliberately Deferred
+
+- Comparing compression ratios and CPU cost under representative telemetry
+  batches.
+- Broker-level verification of compressed batch acknowledgement and replay.
+
 ## Phase 10: Local Compose Service Stack
 
 ### Intention
