@@ -1,0 +1,50 @@
+[tools]
+uv = "latest"
+shellcheck = "latest"
+
+[env]
+_.python.venv = { path = ".venv" }
+
+[tasks.help]
+description = "Show repeatable local development workflows"
+run = "./scripts/help.sh"
+
+[tasks.prerequisites]
+description = "Check required local tools"
+run = "./scripts/check-prerequisites.sh"
+
+[tasks.test]
+description = "Run the canonical host test suite"
+run = "./scripts/host-test.sh"
+
+[tasks.contract]
+description = "Verify the telemetry contract fixtures"
+run = "./scripts/verify-telemetry-contract.sh"
+
+[tasks.analytics-compatibility]
+description = "Compare available analytics engines"
+run = "./scripts/verify-analytics-compatibility.sh"
+
+[tasks.stack-config]
+description = "Validate the Docker/Podman local stack"
+run = "./scripts/local-stack.sh config"
+
+[tasks.stack-up]
+description = "Start the local service stack"
+run = "./scripts/local-stack.sh up"
+
+[tasks.stack-down]
+description = "Stop the local service stack and preserve volumes"
+run = "./scripts/local-stack.sh down"
+
+[tasks.stack-ps]
+description = "Show local service status"
+run = "./scripts/local-stack.sh ps"
+
+[tasks.stack-logs]
+description = "Show local service logs"
+run = "./scripts/local-stack.sh logs"
+
+[tasks.check]
+description = "Run host tests and read-only contract checks"
+depends = ["test", "contract", "stack-config"]
