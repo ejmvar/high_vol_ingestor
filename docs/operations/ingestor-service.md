@@ -104,3 +104,13 @@ The unit suite covers the HTTP mapping and injected publisher behavior. The
 remaining runtime evidence must come from the local stack smoke-test script and
 must record service identity, broker acceptance, duplicate delivery, restart,
 retention, and replay without secrets.
+
+The bounded first-stage check is:
+
+```bash
+REDPANDA_EXTERNAL_PORT=29092 ./scripts/smoke-local-ingestor.sh
+```
+
+It submits one deterministic fixture, repeats the exact request, and consumes
+one matching record from Redpanda. Larger-volume, restart, retention, and replay
+tests remain separate acceptance gates.

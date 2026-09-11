@@ -49,6 +49,8 @@ required by the stack definition.
 - `build` builds local application images without starting containers.
 - `up` starts the four declared services with named persistent volumes.
 - `restart SERVICE` recreates one service without removing named volumes.
+- `exec SERVICE COMMAND...` runs a non-interactive diagnostic command inside a
+  service container.
 - `ps` reports service state and health where the image provides a healthcheck.
 - `down` stops and removes containers but preserves named volumes.
 - `reset` removes containers and volumes only when
@@ -77,6 +79,20 @@ required by the stack definition.
   communicate.
 - A host-port bind failure is an environment collision; use
   `REDPANDA_EXTERNAL_PORT` rather than changing the container listener.
+
+## End-To-End Smoke Test
+
+With the stack running, execute:
+
+```bash
+REDPANDA_EXTERNAL_PORT=29092 ./scripts/smoke-local-ingestor.sh
+```
+
+The script submits one deterministic fixture, repeats the same request, and
+consumes one record from the configured Redpanda topic. A passing result proves
+HTTP acceptance, duplicate suppression, producer acknowledgement, and broker
+delivery for that single record. It does not prove restart persistence,
+retention, replay completeness, throughput, or production durability.
 
 ## Verification Evidence
 

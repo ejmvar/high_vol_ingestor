@@ -2,7 +2,7 @@
 # Intention: manage the local Redpanda, RustFS, ClickHouse, and PostgreSQL stack.
 # Expected result: config validates, or the requested lifecycle action completes.
 # Safety: up/down preserve named volumes; reset is destructive and requires confirmation.
-# Usage: ./scripts/local-stack.sh config|build|up|restart|down|ps|logs|reset [service]
+# Usage: ./scripts/local-stack.sh config|build|up|restart|down|ps|logs|exec|reset [service] [command...]
 # Failure: missing runtime, invalid config, unhealthy service, or missing reset confirmation.
 # Evidence: prints runtime, action, service status, and safe command output only.
 
@@ -30,7 +30,11 @@ else
     exit 1
 fi
 
-printf 'runtime=%s\n' "${RUNTIME[*]}"
+if [[ "$ACTION" == "exec" ]]; then
+    printf 'runtime=%s\n' "${RUNTIME[*]}" >&2
+else
+    printf 'runtime=%s\n' "${RUNTIME[*]}"
+fi
 
 case "$ACTION" in
     config)
@@ -71,6 +75,14 @@ case "$ACTION" in
         else
             "${RUNTIME[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --project-name high-vol-ingestor logs
         fi
+        ;;
+    exec)
+        if [[ -z "$SERVICE" || "$#" -lt 3 ]]; then
+            printf 'ERROR exec requires a service name and command\n' >&2
+            exit 1
+        fi
+        shift 2
+        "${RUNTIME[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --project-name high-vol-ingestor exec -T "$SERVICE" "$@"
         ;;
     reset)
         if [[ "${CONFIRM_LOCAL_RESET:-}" != "YES" ]]; then

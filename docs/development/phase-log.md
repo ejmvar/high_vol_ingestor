@@ -484,6 +484,55 @@ codec as a pinned runtime dependency.
   batches.
 - Broker-level verification of compressed batch acknowledgement and replay.
 
+## Phase 14: HTTP-To-Redpanda Runtime Smoke Test
+
+### Intention
+
+Prove the first bounded runtime path from the public HTTP adapter through the
+Kafka publisher into Redpanda, without treating process readiness as durable
+delivery evidence.
+
+### Behavior
+
+`./scripts/smoke-local-ingestor.sh` creates one fixture, submits it twice, and
+consumes the newest broker record. The expected result is one `202` with a
+queue offset, one `200` duplicate response with no second publish, and one
+matching broker record.
+
+### Implementation
+
+- `scripts/local-stack.sh exec` provides non-interactive container diagnostics
+  while keeping runtime identification on `stderr`.
+- `scripts/smoke-local-ingestor.sh` generates a bounded fixture, validates both
+  HTTP responses, and parses Redpanda's multiline JSON output from a temporary
+  file rather than passing payloads through process arguments.
+- `docs/operations/local-stack.md` and
+  `docs/operations/ingestor-service.md` document the command and evidence
+  boundary.
+
+### Situations Evaluated
+
+- Producer acknowledgement returns an HTTP `202` and a Redpanda offset.
+- An exact repeated request returns `200 duplicate` and does not publish again.
+- The broker contains the matching idempotency key.
+- The test avoids asserting that a duplicate response repeats the original
+  queue offset; that is not part of the HTTP contract.
+- Large broker output is handled through a temporary file to avoid operating
+  system argument-size limits.
+
+### Evidence
+
+The first successful run produced:
+
+- HTTP first publish: `202`, `nvt.telemetry.raw.v1:0:4`.
+- HTTP duplicate: `200`, `duplicate`.
+- Broker delivery: topic `nvt.telemetry.raw.v1`, matching record.
+
+### Deliberately Deferred
+
+- Restart persistence, retention, replay completeness, throughput, backpressure,
+  dead-letter handling, and multi-record ordering.
+
 ## Phase 10: Local Compose Service Stack
 
 ### Intention
