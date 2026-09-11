@@ -6,10 +6,14 @@ from .validator import (
     ValidationResult,
     validate_envelope,
 )
+from .generator import GeneratedChunk, VibrationGeneratorConfig, generate_vibration_chunk
 
 __all__ = [
     "ContractError",
     "StatefulTelemetryValidator",
     "ValidationResult",
+    "GeneratedChunk",
+    "VibrationGeneratorConfig",
+    "generate_vibration_chunk",
     "validate_envelope",
 ]
