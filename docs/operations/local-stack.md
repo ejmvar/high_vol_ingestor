@@ -105,6 +105,22 @@ This recreates only the Redpanda container and preserves its named volume. It
 is a bounded restart/replay check, not proof of retention policy or complete
 log recovery.
 
+To verify time-based retention without touching the telemetry topic:
+
+```bash
+./scripts/verify-redpanda-retention.sh
+```
+
+The script creates a temporary topic with five-second retention, one-second
+segments, and a 16 KiB segment size. It produces a second record large enough
+to force rollover and a third record to close the next segment, verifies the
+topic configuration, waits up to 75 seconds for the background cleanup cycle,
+and checks the log offsets before deleting the temporary topic. This is a local
+configuration check, not a production retention or legal immutability claim.
+Exit `2` means the broker accepted the retention configuration but did not
+provide deletion evidence in the bounded wait; treat that as an environment
+capability result requiring investigation, not as a passing retention test.
+
 ## Verification Evidence
 
 The lifecycle script prints the selected runtime, action, and Compose output.

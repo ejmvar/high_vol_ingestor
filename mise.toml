@@ -53,6 +53,10 @@ run = "./scripts/local-stack.sh logs"
 description = "Verify Redpanda replay after restart"
 run = "./scripts/verify-redpanda-replay.sh"
 
+[tasks.stack-retention]
+description = "Verify bounded Redpanda retention"
+run = "./scripts/verify-redpanda-retention.sh"
+
 [tasks.check]
 description = "Run host tests and read-only contract checks"
 depends = ["test", "contract", "stack-config"]

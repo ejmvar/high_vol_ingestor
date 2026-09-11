@@ -136,3 +136,12 @@ REDPANDA_EXTERNAL_PORT=29092 ./scripts/verify-redpanda-replay.sh
 
 It records the acknowledged partition and offset, recreates Redpanda without
 removing its volume, and reads that exact record back from the log.
+
+Retention is verified separately with:
+
+```bash
+./scripts/verify-redpanda-retention.sh
+```
+
+That test uses a temporary topic and does not establish the retention policy of
+the application telemetry topic.

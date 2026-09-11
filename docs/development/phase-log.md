@@ -567,6 +567,51 @@ exact offset. The test passes only when the topic and idempotency key match.
   explicit `CMD-SHELL` form for the Python readiness check; all services then
   reported healthy after recreation.
 
+## Phase 16: Bounded Redpanda Retention Check
+
+### Intention
+
+Verify the broker's time-based deletion mechanism on an isolated temporary
+topic before making any claim about application-topic retention.
+
+### Behavior
+
+`./scripts/verify-redpanda-retention.sh` creates a one-partition topic with
+`retention.ms=5000` and `segment.ms=1000`, produces one probe record, verifies
+the initial watermark, waits for cleanup, and requires the log start offset to
+reach the high watermark. The temporary topic is deleted by the exit trap.
+
+### Implementation
+
+- `scripts/verify-redpanda-retention.sh` owns topic creation, production,
+  offset inspection, expiry wait, and cleanup.
+- `mise run stack-retention` exposes the repeatable entry point.
+- Operations documentation distinguishes this broker configuration check from
+  application-topic and production retention claims.
+
+### Situations Evaluated
+
+- Retention configuration is applied at topic creation.
+- Segment closure is forced on a short interval so expiry can be observed.
+- A second record is appended after the segment interval because retention
+  applies to closed segments, not the active segment.
+- The second record also exceeds the configured segment size, forcing a
+  size-based rollover when time-based rollover was insufficient in the local
+  Redpanda runtime.
+- A third record closes the segment containing the rollover record; the test
+  only requires the first segment's start offset to advance, leaving the final
+  active segment outside the expiry assertion.
+- On Redpanda `v24.3.6`, the configured topic retained all records after the
+  bounded 75-second wait. The script reports exit `2` for this capability result
+  rather than converting it into a false pass.
+- A record exists before expiry and is removed afterward.
+- Cleanup is isolated to a uniquely named temporary topic.
+
+### Deliberately Deferred
+
+- Application-topic retention policy selection, legal immutability, remote tier
+  retention, and retention behavior under sustained load.
+
 ### Deliberately Deferred
 
 - Retention expiry, complete-log replay, consumer group recovery, throughput,
