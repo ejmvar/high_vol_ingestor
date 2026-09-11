@@ -35,6 +35,8 @@ The default environment file contains local-only placeholder credentials. Use
 commit that override. If the default host port is already occupied, set
 `REDPANDA_EXTERNAL_PORT` in the environment or private override file; the
 container keeps its internal Kafka listener on `19092`.
+For isolated broker experiments, set `REDPANDA_DATA_VOLUME` to a temporary
+named volume; normal operation keeps `nvt_redpanda_data`.
 
 ## Runtime Selection
 

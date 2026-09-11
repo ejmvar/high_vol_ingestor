@@ -577,9 +577,10 @@ topic before making any claim about application-topic retention.
 ### Behavior
 
 `./scripts/verify-redpanda-retention.sh` creates a one-partition topic with
-`retention.ms=5000` and `segment.ms=1000`, produces one probe record, verifies
-the initial watermark, waits for cleanup, and requires the log start offset to
-reach the high watermark. The temporary topic is deleted by the exit trap.
+`retention.ms=5000`, `segment.ms=1000`, and `segment.bytes=16384`, produces
+three probe records to force segment rollover, verifies the initial watermark,
+waits for cleanup, and requires the log start offset to advance. The temporary
+topic is deleted by the exit trap.
 
 ### Implementation
 
@@ -604,7 +605,6 @@ reach the high watermark. The temporary topic is deleted by the exit trap.
 - On Redpanda `v24.3.6`, the configured topic retained all records after the
   bounded 75-second wait. The script reports exit `2` for this capability result
   rather than converting it into a false pass.
-- A record exists before expiry and is removed afterward.
 - Cleanup is isolated to a uniquely named temporary topic.
 
 ### Deliberately Deferred
@@ -612,10 +612,45 @@ reach the high watermark. The temporary topic is deleted by the exit trap.
 - Application-topic retention policy selection, legal immutability, remote tier
   retention, and retention behavior under sustained load.
 
+## Phase 17: Redpanda Retention Version A/B
+
+### Intention
+
+Determine whether the retention result is specific to the pinned broker version
+without risking the existing local Redpanda volume.
+
+### Behavior
+
+The baseline `v24.3.6` test was repeated with `v25.3.17` on a fresh named
+volume using the same topic configuration and fixture. Both versions accepted
+the configuration but left `log_start_offset=0` after the bounded wait.
+
+### Implementation
+
+- `REDPANDA_DATA_VOLUME` makes the Compose Redpanda volume selectable for
+  isolated experiments while preserving `nvt_redpanda_data` by default.
+- The candidate version was started only with the Redpanda service; the
+  application stack was restored to the baseline after the test.
+- No image change was published because the A/B result did not justify one.
+
+### Situations Evaluated
+
+- Directly opening the existing v24 volume with v25 was rejected by Redpanda's
+  incompatible logical-version guard; this is an invalid upgrade path.
+- A fresh v25 volume removed the migration variable but reproduced the retention
+  non-observation.
+- The baseline v24 stack was restored and its existing volume preserved.
+
+### Decision
+
+Keep `redpandadata/redpanda:v24.3.6` pinned for now. The evidence does not
+justify replacing it; retention remains an unresolved local capability result
+and must not be claimed as verified.
+
 ### Deliberately Deferred
 
-- Retention expiry, complete-log replay, consumer group recovery, throughput,
-  backpressure, and dead-letter behavior.
+- Direct segment inspection, broker debug logging, alternative retention
+  properties, and a production-version selection.
 
 ## Phase 10: Local Compose Service Stack
 
