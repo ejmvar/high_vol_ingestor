@@ -36,13 +36,14 @@ Run `mise run help`, `make help`, or `just help` for the same command list.
 ## Local Stack
 
 The local Compose definition is at `deploy/local/compose.yaml`. It includes
-Redpanda, RustFS, ClickHouse, and PostgreSQL with named persistent volumes.
+the ingestor HTTP service, Redpanda, RustFS, ClickHouse, and PostgreSQL with
+named persistent volumes.
 See `docs/operations/local-stack.md` for ports, runtime selection, safety, and
 failure interpretation.
 
-The ingestor application is not yet a container because its HTTP adapter and
-real durable publisher adapter are not implemented. This is intentional: a
-placeholder would falsely claim end-to-end durability.
+The ingestor endpoint is available at `http://localhost:8080` after
+`stack-up`; see `docs/operations/ingestor-service.md` for the request contract.
+Its health endpoint proves process readiness only, not broker durability.
 
 ## Architecture Boundary
 

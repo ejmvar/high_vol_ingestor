@@ -11,14 +11,15 @@ changing service or application contracts.
 
 | Service | Local role | Published ports | Persistent volume |
 | --- | --- | --- | --- |
+| Ingestor | HTTP-to-Kafka telemetry ingress | `8080` | None; broker and raw sinks own persistence |
 | Redpanda | Kafka-compatible durable queue candidate | `19092`, `19644`, `18081`, `18082` | `nvt_redpanda_data` |
 | RustFS | S3-compatible raw-object store candidate | `9000`, `9001` | `nvt_rustfs_data`, `nvt_rustfs_logs` |
 | ClickHouse | Curated values, aggregates, and features | `8123`, `9009` | `nvt_clickhouse_data`, `nvt_clickhouse_logs` |
 | PostgreSQL | Catalog, lineage, schema, and retention metadata | `5432` | `nvt_postgres_data` |
 
-The ingestor application is not yet a container in this stack because its HTTP
-adapter and real durable publisher adapter have not been implemented. Adding a
-placeholder process would falsely imply end-to-end durability.
+The ingestor application is built from `deploy/local/Dockerfile.ingestor` and
+publishes to the internal Redpanda address. Its container healthcheck proves
+HTTP readiness only; it does not prove that Redpanda has accepted a record.
 
 ## Quick Path
 
@@ -58,6 +59,7 @@ required by the stack definition.
 - Credentials are local placeholders and must never be reused in production.
 - A healthy container proves process readiness only, not S3 compatibility,
   queue durability, data retention, or cloud equivalence.
+- The ingestor health endpoint does not perform a broker round-trip.
 
 ## Failure Interpretation
 
