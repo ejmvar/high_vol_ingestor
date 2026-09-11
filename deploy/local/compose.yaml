@@ -16,6 +16,7 @@ services:
       - redpanda
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      start_period: 10s
       interval: 10s
       timeout: 5s
       retries: 12
@@ -36,9 +37,9 @@ services:
       - "0"
       - --check=false
       - --kafka-addr
-      - internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - internal://0.0.0.0:9092,external://0.0.0.0:${REDPANDA_EXTERNAL_PORT:-19092}
       - --advertise-kafka-addr
-      - internal://redpanda:9092,external://localhost:19092
+      - internal://redpanda:9092,external://localhost:${REDPANDA_EXTERNAL_PORT:-19092}
       - --pandaproxy-addr
       - internal://0.0.0.0:8082,external://0.0.0.0:18082
       - --advertise-pandaproxy-addr
@@ -50,7 +51,7 @@ services:
       - --advertise-rpc-addr
       - redpanda:33145
     ports:
-      - "19092:19092"
+      - "${REDPANDA_EXTERNAL_PORT:-19092}:19092"
       - "19644:9644"
       - "18081:18081"
       - "18082:18082"
@@ -79,7 +80,7 @@ services:
       - nvt-local
 
   clickhouse:
-    image: clickhouse/clickhouse-server:25.8.2.1
+    image: clickhouse/clickhouse-server:25.8.33-alpine
     environment:
       CLICKHOUSE_DB: ${CLICKHOUSE_DB:-telemetry}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-local_telemetry}
@@ -94,7 +95,7 @@ services:
     networks:
       - nvt-local
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      test: ["CMD-SHELL", "clickhouse-client --user \"$${CLICKHOUSE_USER}\" --password \"$${CLICKHOUSE_PASSWORD}\" --query 'SELECT 1'"]
       interval: 10s
       timeout: 5s
       retries: 12

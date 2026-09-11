@@ -2,7 +2,7 @@
 # Intention: manage the local Redpanda, RustFS, ClickHouse, and PostgreSQL stack.
 # Expected result: config validates, or the requested lifecycle action completes.
 # Safety: up/down preserve named volumes; reset is destructive and requires confirmation.
-# Usage: ./scripts/local-stack.sh config|up|down|ps|logs|reset [service]
+# Usage: ./scripts/local-stack.sh config|build|up|restart|down|ps|logs|reset [service]
 # Failure: missing runtime, invalid config, unhealthy service, or missing reset confirmation.
 # Evidence: prints runtime, action, service status, and safe command output only.
 
@@ -37,12 +37,23 @@ case "$ACTION" in
         "${RUNTIME[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --project-name high-vol-ingestor config --quiet
         printf 'action=config result=passed\n'
         ;;
+    build)
+        "${RUNTIME[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --project-name high-vol-ingestor build
+        printf 'action=build result=passed\n'
+        ;;
     up)
         if [[ -n "$SERVICE" ]]; then
             "${RUNTIME[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --project-name high-vol-ingestor up -d "$SERVICE"
         else
             "${RUNTIME[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --project-name high-vol-ingestor up -d
         fi
+        ;;
+    restart)
+        if [[ -z "$SERVICE" ]]; then
+            printf 'ERROR restart requires a service name\n' >&2
+            exit 1
+        fi
+        "${RUNTIME[@]}" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" --project-name high-vol-ingestor up -d --force-recreate "$SERVICE"
         ;;
     down)
         if [[ -n "$SERVICE" ]]; then

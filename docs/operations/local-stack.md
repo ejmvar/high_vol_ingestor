@@ -25,13 +25,16 @@ HTTP readiness only; it does not prove that Redpanda has accepted a record.
 
 ```bash
 ./scripts/local-stack.sh config
+./scripts/local-stack.sh build
 ./scripts/local-stack.sh up
 ./scripts/local-stack.sh ps
 ```
 
 The default environment file contains local-only placeholder credentials. Use
 `LOCAL_STACK_ENV_FILE=/path/to/local.env` for a private local override; never
-commit that override.
+commit that override. If the default host port is already occupied, set
+`REDPANDA_EXTERNAL_PORT` in the environment or private override file; the
+container keeps its internal Kafka listener on `19092`.
 
 ## Runtime Selection
 
@@ -43,7 +46,9 @@ required by the stack definition.
 ## Expected Results
 
 - `config` validates interpolation without starting containers.
+- `build` builds local application images without starting containers.
 - `up` starts the four declared services with named persistent volumes.
+- `restart SERVICE` recreates one service without removing named volumes.
 - `ps` reports service state and health where the image provides a healthcheck.
 - `down` stops and removes containers but preserves named volumes.
 - `reset` removes containers and volumes only when
@@ -70,6 +75,8 @@ required by the stack definition.
   health gate by relabeling the service.
 - Passing `config` does not prove that images can be pulled or services can
   communicate.
+- A host-port bind failure is an environment collision; use
+  `REDPANDA_EXTERNAL_PORT` rather than changing the container listener.
 
 ## Verification Evidence
 

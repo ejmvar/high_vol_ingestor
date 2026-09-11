@@ -61,8 +61,8 @@ network policy, and secret injection are separate adapter concerns.
   service.
 - The request body is bounded by `16 MiB` before decoding.
 - Request bodies and payloads are not written to ordinary access logs.
-- The local Dockerfile installs the pinned `kafka-python` version declared for
-  this image.
+- The local Dockerfile installs pinned `kafka-python` and `zstandard` versions;
+  Zstandard is required by the publisher's configured compression.
 - Container startup does not prove durable acknowledgement until a broker
   smoke test verifies it.
 
