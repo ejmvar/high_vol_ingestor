@@ -44,6 +44,9 @@ after consumers are tested for unknown-field behavior.
 - Every rejection includes a bounded reason code and correlation identifier;
   secrets and payload bytes must not be written to ordinary logs.
 
+The detailed proposed quarantine and replay contract is documented in
+`docs/contracts/dlq.md`. It is not yet an implemented persistence guarantee.
+
 ## Fixtures
 
 - `valid-vibration.json` is the minimum valid vibration envelope.

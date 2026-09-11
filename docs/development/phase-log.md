@@ -11,6 +11,10 @@ is shaped this way without reconstructing the entire session history.
 The phases are ordered by dependency. A later phase may use an earlier phase,
 but each commit should remain independently understandable and removable.
 
+The current contract status is important: proposed designs are recorded
+explicitly, but are not evidence of implemented or production-approved
+behavior.
+
 The repository currently proves contract and in-memory behavior. It does not
 yet prove Redpanda durability, object-store persistence, cloud portability, or
 production readiness.
@@ -818,3 +822,38 @@ Create one measured compatibility fixture that runs the same generated data and
 representative queries through DuckDB, chDB, and the selected ClickHouse
 service. Record versions, hardware, dataset shape, query text, result parity,
 memory, startup, disk, and restart behavior.
+
+## Phase 18: Dead-Letter Queue Contract
+
+### Intention
+
+Define recovery semantics before adding a DLQ adapter. The system must distinguish
+temporary inability to process a record from a record that is invalid or requires
+operator review; otherwise retries can become infinite, duplicate quarantine
+records can accumulate, and the original telemetry bytes can be lost.
+
+### Behavior
+
+`docs/contracts/dlq.md` defines transient failures, permanent contract failures,
+semantic quarantine, downstream processing failures, and operator quarantine. It
+assigns one retry owner to each class, requires lossless raw-record preservation,
+retains the original idempotency key across replay, and defines the proposed
+quarantine lifecycle.
+
+### Evidence And Boundary
+
+This phase is documentation and design only. The repository does not yet persist
+DLQ records or prove DLQ replay. HTTP `503/backpressure` remains producer-owned
+retry and must not be interpreted as DLQ acceptance.
+
+### Deliberately Deferred
+
+- Provider-neutral quarantine port and in-memory implementation.
+- Kafka/object-store/database DLQ adapter selection.
+- Retry budget and backoff values per downstream consumer.
+- Retention, access control, and deletion policy for quarantined raw data.
+
+### Next Gate
+
+Add tests for deterministic DLQ identity, exact payload preservation, idempotent
+DLQ insertion, and replay resolution before implementing a persistence adapter.

@@ -45,6 +45,11 @@ The ingestor endpoint is available at `http://localhost:8080` after
 `stack-up`; see `docs/operations/ingestor-service.md` for the request contract.
 Its health endpoint proves process readiness only, not broker durability.
 
+For failure recovery onboarding, read `docs/contracts/dlq.md`. It defines the
+proposed distinction between transient retry, permanent rejection, semantic
+quarantine, and downstream processing failure. The DLQ contract is design-only
+until its provider-neutral port and verification tests are implemented.
+
 ## Architecture Boundary
 
 Domain and application behavior remains independent of task runners, container
