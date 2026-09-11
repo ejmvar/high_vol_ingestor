@@ -50,6 +50,85 @@ proposed distinction between transient retry, permanent rejection, semantic
 quarantine, and downstream processing failure. The DLQ contract is design-only
 until its provider-neutral port and verification tests are implemented.
 
+## DLQ Onboarding
+
+### The Problem It Solves
+
+A telemetry record can fail for two fundamentally different reasons:
+
+- The system is temporarily unable to process it. The record is still valid and
+  should be retried.
+- The record cannot safely continue. It must be preserved for inspection and a
+  deliberate recovery decision.
+
+The first case belongs to bounded retry. The second belongs to quarantine or a
+DLQ. Treating both cases as the same error either loses valid telemetry during a
+temporary outage or creates endless retries for a permanently invalid record.
+
+### Decision Flow
+
+Use this sequence when investigating an error:
+
+1. Ask whether the input is valid according to the envelope and payload rules.
+2. If it is valid, ask whether the failed dependency is expected to recover.
+3. If recovery is expected, identify the component that owns the retry budget.
+4. If the input is invalid or the retry budget is exhausted, preserve the raw
+   record and create one logical quarantine entry.
+5. Replay only after the cause is understood and the normal validation path is
+   available again.
+
+| Observation | Correct interpretation | First owner |
+| --- | --- | --- |
+| HTTP `503` with `backpressure` | Service capacity is temporarily full; the body was not read or published | Producer retries the same request |
+| HTTP `503` with publisher failure | Broker or publisher operation failed transiently | Producer retries within its budget |
+| HTTP `400` with `invalid_checksum` | The submitted bytes do not match the envelope | Ingestion boundary rejects; do not retry unchanged |
+| HTTP `400` with `conflicting_duplicate` | An identity was reused for different content | Validator quarantines or escalates |
+| Consumer retry budget exhausted | An accepted broker record repeatedly fails downstream | Failing consumer writes to DLQ |
+
+### What Must Never Change
+
+During quarantine and replay, the original telemetry identity and content are
+authoritative. Do not change the `idempotency_key`, producer sequence, event
+timestamps, checksum, or payload bytes to make a replay pass validation. If the
+record needs correction, create an explicit corrected record with a new identity
+and retain the original as lineage.
+
+### Example Walkthrough
+
+Suppose a consumer reads a record from the raw topic and cannot write its
+curated representation:
+
+1. The consumer retries the write with bounded backoff.
+2. Each attempt keeps the original broker offset and `idempotency_key`.
+3. After the retry budget is exhausted, the consumer writes the original
+   envelope, exact payload, failure stage, stable reason code, attempt count,
+   and source lineage to the DLQ.
+4. The consumer acknowledges or advances the original record only after DLQ
+   insertion succeeds, so a DLQ write failure cannot silently lose the record.
+5. An operator or replay worker investigates the reason and replays the raw
+   record through the normal path.
+6. A successful destination acknowledgement, including an exact duplicate
+   acknowledgement, resolves the DLQ entry. It does not create a second
+   telemetry event.
+
+### Onboarding Checklist
+
+- [ ] I know whether my component is a producer, ingestion boundary, consumer,
+  DLQ writer, or operator.
+- [ ] I can distinguish transient `503` retry from permanent `400` rejection.
+- [ ] I know which component owns my retry budget and when it ends.
+- [ ] I preserve the original envelope and payload rather than using logs as a
+  recovery source.
+- [ ] I keep the original `idempotency_key` during DLQ insertion and replay.
+- [ ] I can prove whether the destination accepted, duplicated, quarantined, or
+  discarded the record.
+- [ ] I do not claim DLQ durability until the implementation and evidence gates
+  exist.
+
+There is currently no DLQ persistence or replay command in the repository. The
+contract is onboarding guidance and an implementation boundary, not an
+operational procedure that can be executed yet.
+
 ## Architecture Boundary
 
 Domain and application behavior remains independent of task runners, container
