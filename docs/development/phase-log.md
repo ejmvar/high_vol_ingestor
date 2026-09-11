@@ -563,6 +563,9 @@ exact offset. The test passes only when the topic and idempotency key match.
 - Replay validates identity without printing payload contents.
 - `rpk` partition and offset are passed as separate flags; its `partition:offset`
   range syntax can otherwise start at the partition's beginning.
+- The Podman-backed Compose health discrepancy was resolved by using the
+  explicit `CMD-SHELL` form for the Python readiness check; all services then
+  reported healthy after recreation.
 
 ### Deliberately Deferred
 

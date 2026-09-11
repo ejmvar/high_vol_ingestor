@@ -88,6 +88,19 @@ installation paths.
 Switching compression off would avoid the dependency but would increase
 network and broker storage costs; it is not the selected default.
 
+### Compose Healthcheck Interpretation
+
+The Podman-backed legacy Compose provider initially reported the ingestor as
+`starting`/`unhealthy` even though the host and in-container readiness requests
+returned HTTP `200`. The healthcheck used the JSON-array `CMD` form while other
+services used shell-form checks.
+
+Decision: retain the readiness gate and use an explicit `CMD-SHELL` healthcheck
+for this Python command. After recreating the service with the configured
+`REDPANDA_EXTERNAL_PORT`, all local services reported healthy. Readiness still
+does not prove broker durability; the HTTP-to-Redpanda and restart/replay
+smoke tests remain separate evidence.
+
 ## Failure Interpretation
 
 - `400` is a caller contract failure and must not be retried unchanged.
