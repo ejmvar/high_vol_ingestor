@@ -1,4 +1,25 @@
 services:
+  ingestor:
+    build:
+      context: ../..
+      dockerfile: deploy/local/Dockerfile.ingestor
+    environment:
+      INGESTOR_HOST: 0.0.0.0
+      INGESTOR_PORT: "8080"
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      KAFKA_TOPIC: ${KAFKA_TOPIC:-nvt.telemetry.raw.v1}
+    ports:
+      - "8080:8080"
+    networks:
+      - nvt-local
+    depends_on:
+      - redpanda
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
   redpanda:
     image: redpandadata/redpanda:v24.3.6
     command:

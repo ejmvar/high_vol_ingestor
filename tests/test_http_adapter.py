@@ -16,9 +16,11 @@ class Publisher:
         return "topic-0-7"
 
 
-def request(server, body: dict, path: str = "/v1/telemetry/chunks"):
+def request(server, body: dict, path: str = "/v1/telemetry/chunks", method: str = "POST"):
     connection = HTTPConnection(*server.server_address)
-    connection.request("POST", path, json.dumps(body), {"Content-Type": "application/json"})
+    request_body = json.dumps(body) if method == "POST" else None
+    headers = {"Content-Type": "application/json"} if request_body is not None else {}
+    connection.request(method, path, request_body, headers)
     response = connection.getresponse()
     result = response.status, json.loads(response.read())
     connection.close()
@@ -73,10 +75,24 @@ def test_http_adapter_returns_not_found_for_other_paths() -> None:
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        status, result = request(server, {}, "/health")
+        status, result = request(server, {}, "/unknown", method="GET")
     finally:
         server.shutdown()
         server.server_close()
         thread.join()
     assert status == 404
     assert result == {"error": {"code": "not_found"}}
+
+
+def test_http_adapter_exposes_non_secret_readiness() -> None:
+    server = create_http_server(IngestionEndpoint(Publisher()), port=0)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        status, result = request(server, {}, "/health", method="GET")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+    assert status == 200
+    assert result == {"status": "ready"}

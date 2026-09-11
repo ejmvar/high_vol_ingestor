@@ -33,6 +33,12 @@ class IngestionRequestHandler(BaseHTTPRequestHandler):
 
     ingestion_endpoint: IngestionEndpoint
 
+    def do_GET(self) -> None:  # noqa: N802
+        if self.path != "/health":
+            self._respond(HTTPStatus.NOT_FOUND, {"error": {"code": "not_found"}})
+            return
+        self._respond(HTTPStatus.OK, {"status": "ready"})
+
     def do_POST(self) -> None:  # noqa: N802
         if self.path != "/v1/telemetry/chunks":
             self._respond(HTTPStatus.NOT_FOUND, {"error": {"code": "not_found"}})

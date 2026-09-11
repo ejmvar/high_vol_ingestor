@@ -1,0 +1,16 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir "kafka-python==2.2.15"
+
+COPY telemetry_contract /app/telemetry_contract
+COPY ingestor_http /app/ingestor_http
+COPY ingestor_service /app/ingestor_service
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+EXPOSE 8080
+
+CMD ["python", "-m", "ingestor_service"]
