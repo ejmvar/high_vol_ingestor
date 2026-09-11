@@ -361,3 +361,57 @@ The existing working tree contains unrelated untracked material and an
 unstaged TODO edit in `telemetry_contract/generator.py`; those items are not
 part of the completed phases and must remain outside future commits until their
 ownership is clear.
+
+## Phase 8: Embedded Analytics Evaluation
+
+### Intention
+
+Evaluate DuckDB and chDB for notebook development and demos without weakening
+the production ingestion contract. The evaluation exists because an embedded
+analytics engine can shorten the feedback loop, but it can also create a false
+impression that local persistence, SQL compatibility, and production durability
+are the same property.
+
+### Behavior
+
+The recommendation is to use DuckDB by default for lightweight development and
+Parquet-oriented notebook work, and chDB when ClickHouse SQL behavior is the
+primary compatibility objective. A real ClickHouse service remains the choice
+when a demo requires a network endpoint or multiple independent processes.
+
+The requested operating levels were four, so the evaluation defines separate
+development, demo, quiet-production, and high-volume-production profiles.
+
+### Implementation
+
+- `docs/research/embedded-analytics-options.md` records engine capabilities,
+  compatibility-layer costs, stack compositions, migration rules, situations
+  evaluated, and source-backed recommendations.
+- No runtime dependency was added yet; this phase is an architecture and
+  compatibility decision before benchmarking.
+
+### Situations Evaluated
+
+- Fast notebook acquisition with no service startup.
+- ClickHouse-compatible SQL in a self-contained demo.
+- Networked dashboard access and multi-process readers.
+- Single-writer limitations of embedded database files.
+- Quiet production where fixed broker cost may dominate traffic cost.
+- High-volume production requiring replay, consumer isolation, and durable raw
+  recovery.
+- Compatibility of envelopes, Parquet/Arrow, curated tables, SQL, and service
+  APIs across environments.
+
+### Deliberately Deferred
+
+- Selecting a final vendor or managed cloud service.
+- Claiming performance or cost without a controlled benchmark.
+- Using DuckDB or chDB as the authoritative raw-ingestion store.
+- Emulating a ClickHouse server API over an embedded engine.
+
+### Next Gate
+
+Create one measured compatibility fixture that runs the same generated data and
+representative queries through DuckDB, chDB, and the selected ClickHouse
+service. Record versions, hardware, dataset shape, query text, result parity,
+memory, startup, disk, and restart behavior.
