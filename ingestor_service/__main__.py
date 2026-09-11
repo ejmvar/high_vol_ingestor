@@ -22,6 +22,7 @@ def main() -> None:
         IngestionEndpoint(publisher),
         host=os.environ.get("INGESTOR_HOST", "0.0.0.0"),
         port=int(os.environ.get("INGESTOR_PORT", "8080")),
+        max_in_flight=int(os.environ.get("INGESTOR_MAX_IN_FLIGHT", "128")),
     )
     try:
         server.serve_forever()

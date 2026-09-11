@@ -1,7 +1,7 @@
 import base64
 import json
 from http.client import HTTPConnection
-from threading import Thread
+from threading import Event, Thread
 
 from telemetry_contract import IngestionEndpoint, VibrationGeneratorConfig, generate_vibration_chunk
 from ingestor_http import create_http_server
@@ -16,13 +16,33 @@ class Publisher:
         return "topic-0-7"
 
 
-def request(server, body: dict, path: str = "/v1/telemetry/chunks", method: str = "POST"):
+class BlockingPublisher(Publisher):
+    def __init__(self) -> None:
+        super().__init__()
+        self.started = Event()
+        self.release = Event()
+
+    def publish(self, envelope, payload):
+        self.started.set()
+        self.release.wait(timeout=5)
+        return super().publish(envelope, payload)
+
+
+def request(
+    server,
+    body: dict,
+    path: str = "/v1/telemetry/chunks",
+    method: str = "POST",
+    include_headers: bool = False,
+):
     connection = HTTPConnection(*server.server_address)
     request_body = json.dumps(body) if method == "POST" else None
     headers = {"Content-Type": "application/json"} if request_body is not None else {}
     connection.request(method, path, request_body, headers)
     response = connection.getresponse()
     result = response.status, json.loads(response.read())
+    if include_headers:
+        result += (dict(response.headers),)
     connection.close()
     return result
 
@@ -96,3 +116,35 @@ def test_http_adapter_exposes_non_secret_readiness() -> None:
         thread.join()
     assert status == 200
     assert result == {"status": "ready"}
+
+
+def test_http_adapter_rejects_when_in_flight_capacity_is_full() -> None:
+    publisher = BlockingPublisher()
+    server = create_http_server(IngestionEndpoint(publisher), port=0, max_in_flight=1)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    first_result = []
+    try:
+        chunk = generate_vibration_chunk(VibrationGeneratorConfig(sample_rate_hz=100))
+        first = Thread(target=lambda: first_result.append(request(server, body_for_chunk(chunk))))
+        first.start()
+        assert publisher.started.wait(timeout=5)
+
+        status, result, headers = request(server, {}, include_headers=True)
+        assert status == 503
+        assert result == {"error": {"code": "backpressure", "message": "ingestor capacity is full"}}
+        assert headers["Retry-After"] == "1"
+        assert publisher.records == []
+
+        publisher.release.set()
+        first.join(timeout=5)
+    finally:
+        publisher.release.set()
+        server.shutdown()
+        server.server_close()
+        thread.join()
+    assert first_result == [(202, {
+        "idempotency_key": chunk.envelope["idempotency_key"],
+        "queue_offset": "topic-0-7",
+        "status": "accepted",
+    })]

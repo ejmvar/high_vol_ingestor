@@ -43,6 +43,7 @@ queue acceptance offset only after the Kafka publisher future resolves.
 | New record accepted by publisher | `202` | Queue acceptance returned |
 | Exact idempotent duplicate | `200` | No second publish performed |
 | Invalid JSON, envelope, or payload encoding | `400` | Rejected before publish |
+| In-flight capacity exhausted | `503` | No body read or publish; retry after `Retry-After` |
 | Publisher or broker failure | `503` | Retry may be attempted |
 | Unknown route | `404` | No operation performed |
 
@@ -57,6 +58,7 @@ it does not perform a broker round-trip.
 | `INGESTOR_PORT` | `8080` | HTTP port |
 | `KAFKA_BOOTSTRAP_SERVERS` | `redpanda:9092` | Internal Kafka endpoint |
 | `KAFKA_TOPIC` | `nvt.telemetry.raw.v1` | Raw telemetry topic |
+| `INGESTOR_MAX_IN_FLIGHT` | `128` | Maximum concurrent ingestion requests; excess requests receive backpressure |
 
 These defaults are local-development values. Production authentication, TLS,
 network policy, and secret injection are separate adapter concerns.
@@ -66,6 +68,9 @@ network policy, and secret injection are separate adapter concerns.
 - The local service binds a host port and publishes to the local Redpanda
   service.
 - The request body is bounded by `16 MiB` before decoding.
+- Ingestion work is bounded by `INGESTOR_MAX_IN_FLIGHT`; excess requests receive
+  `503` with error code `backpressure`, a one-second `Retry-After`, and are not
+  read or published.
 - Request bodies and payloads are not written to ordinary access logs.
 - The local Dockerfile installs pinned `kafka-python` and `zstandard` versions;
   Zstandard is required by the publisher's configured compression.
@@ -106,6 +111,9 @@ smoke tests remain separate evidence.
 - `400` is a caller contract failure and must not be retried unchanged.
 - `503` is a bounded publisher failure; retry behavior belongs to the producer
   and must preserve the same idempotency key.
+- `503` with error code `backpressure` means the service is temporarily at its
+  configured concurrency limit. The producer should retry the same request after
+  `Retry-After`; the request was not validated or published.
 - A healthy `/health` response with `503` ingestion indicates broker or
   publisher unavailability, not an HTTP process failure.
 - A successful `202` is local adapter behavior until broker persistence and
