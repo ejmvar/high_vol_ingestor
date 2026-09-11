@@ -357,6 +357,58 @@ it durable, the verification must demonstrate configured acknowledgement,
 persistence across restart, retention/replay behavior, duplicate handling,
 backpressure, and a failure-safe dead-letter path.
 
+## Phase 10: Local Compose Service Stack
+
+### Intention
+
+Provide one Docker/Podman-compatible local service definition for the queue,
+raw object store, analytical store, and catalog. The definition must be easy to
+validate before startup and must preserve data through normal local restarts.
+
+### Behavior
+
+`./scripts/local-stack.sh` selects Docker Compose or Podman Compose, validates
+the interpolated configuration, and manages the four declared services. Named
+volumes persist local service data. Normal `down` does not remove volumes;
+`reset` is destructive and requires explicit confirmation.
+
+The ingestor application is intentionally not represented by a placeholder
+container. Its service belongs in the stack after its HTTP adapter and real
+durable publisher adapter exist, otherwise the local stack would overstate its
+acceptance and durability behavior.
+
+### Implementation
+
+- `deploy/local/compose.yaml` defines pinned images, ports, named volumes,
+  network, environment interpolation, and service healthchecks where supported.
+- `deploy/local/.env.example` provides local-only placeholders.
+- `scripts/local-stack.sh` provides the runtime-neutral lifecycle entry point.
+- `docs/operations/local-stack.md` defines usage, safety, expected results,
+  failure interpretation, and evidence.
+- No application or domain module depends on Docker, Podman, or any service
+  hostname.
+
+### Situations Evaluated
+
+- Docker Compose available.
+- Podman Compose available without Docker.
+- Neither runtime available.
+- Configuration validation without starting services.
+- Normal stop while preserving named volumes.
+- Explicit destructive reset requiring confirmation.
+- Service health versus actual durability or compatibility evidence.
+- RustFS non-root volume ownership requirements.
+- Local placeholder credentials versus production secrets.
+
+### Deliberately Deferred
+
+- Starting services in the current environment without explicit operational
+  smoke-test authorization.
+- Ingestor application container until its real HTTP and durable-publisher
+  adapters exist.
+- Broker restart/replay and S3 compatibility claims.
+- Digest locking and higher-environment deployment roots.
+
 ## Phase 9: Embedded Analytics Compatibility Fixture
 
 ### Intention
